@@ -23,7 +23,7 @@
  */
 
 const path = require('path');
-const { ScriptManager, ScriptAsset } = require('./../script');
+const { ScriptManager, ScriptAsset } = require('@ntlab/ntjs');
 
 /**
  * Express core middleware.
@@ -100,7 +100,7 @@ class CoreHelper {
         }
         if (!app.locals.jsloader) {
             app.locals.jsloader = (assets) => {
-                const loader = require('./../script/Loader').instance().getScript();
+                const loader = require('@ntlab/ntjs/Loader').instance().getScript();
                 const queues = JSON.stringify(assets, null, 4);
                 return `<script type="text/javascript">
 //<![CDATA[

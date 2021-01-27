@@ -1,0 +1,26 @@
+{
+  "name": "@ntlab/express-middleware",
+  "version": "1.0.0",
+  "description": "Nodejs Express Middleware",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tohenk/node-express-middleware.git"
+  },
+  "keywords": [
+    "expressjs",
+    "middleware"
+  ],
+  "author": "Toha <tohenk@yahoo.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/tohenk/node-express-middleware/issues"
+  },
+  "homepage": "https://github.com/tohenk/node-express-middleware#readme",
+  "dependencies": {
+    "@ntlab/ntjs": "^1.0.0"
+  }
+}
