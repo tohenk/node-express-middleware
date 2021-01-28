@@ -21,6 +21,6 @@
   },
   "homepage": "https://github.com/tohenk/node-express-middleware#readme",
   "dependencies": {
-    "@ntlab/ntjs": "^1.0.0"
+    "@ntlab/ntjs": "^1.1.0"
   }
 }
