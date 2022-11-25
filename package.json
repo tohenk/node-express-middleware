@@ -1,6 +1,6 @@
 {
   "name": "@ntlab/express-middleware",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Nodejs Express Middleware",
   "main": "index.js",
   "scripts": {
@@ -21,6 +21,6 @@
   },
   "homepage": "https://github.com/tohenk/node-express-middleware#readme",
   "dependencies": {
-    "@ntlab/ntjs": "^1.1.0"
+    "@ntlab/ntjs": "^1.1.1"
   }
 }
