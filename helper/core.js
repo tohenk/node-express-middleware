@@ -1,7 +1,7 @@
 /**
  * The MIT License (MIT)
  *
- * Copyright (c) 2018-2020 Toha <tohenk@yahoo.com>
+ * Copyright (c) 2018-2023 Toha <tohenk@yahoo.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -23,40 +23,49 @@
  */
 
 const path = require('path');
+const Helper = require('../lib/helper');
+const HelperFunctions = require('../lib/fn');
 const { ScriptManager, ScriptAsset } = require('@ntlab/ntjs');
+const Stringify = require('@ntlab/ntlib/stringify');
 
 /**
  * Express core middleware.
  */
-class CoreHelper {
-
+class CoreFunctions extends HelperFunctions {
+    
     blocks = {}
-    finalized = false
 
-    /**
-     * Handle core helper.
-     *
-     * @param {Object} options Options
-     */
-    handle(options) {
-        return (req, res, next) => {
-            this.applyAppHelper(req.app);
-            this.applyHelper(req, res);
-            next();
-        }
+    initialize() {
+        this.exportFn(this.app.locals, this.appFunctions());
+        this.exportFn(this.res, this.renderFunctions(), ['render']);
     }
 
-    applyAppHelper(app) {
-        if (!app.locals.apptitle) {
-            app.locals.apptitle = app.title;
-        }
-        if (!app.locals.slot) {
-            app.locals.slot = (name) => {
-                if (app.slots) {
-                    var slot = app.slots[name];
+    preApply() {
+        this.reset();
+    }
+
+    reset() {
+        ScriptManager.clear();
+        ScriptManager.includeDefaults();
+        this.blocks = {};
+    }
+
+    finalize() {
+        ScriptManager.includeAssets();
+    }
+
+    appFunctions() {
+        return {
+            apptitle: this.app.title,
+            stringify: (object, level = 0) => {
+                return Stringify.from(object, level);
+            },
+            slot: name => {
+                if (this.app.slots) {
+                    let slot = this.app.slots[name];
                     if (slot) {
-                        if (typeof slot == 'object') {
-                            if (false == slot.enabled) {
+                        if (typeof slot === 'object') {
+                            if (false === slot.enabled) {
                                 delete slot.enabled;
                                 return;
                             }
@@ -67,79 +76,63 @@ class CoreHelper {
                         return slot;
                     }
                 }
-            }
-        }
-        if (!app.locals.block) {
-            app.locals.block = (name, content) => {
-                if (content == undefined) {
+            },
+            block: (name, content) => {
+                if (content === undefined) {
                     return this.blocks[name] ? this.blocks[name] : '';
                 } else {
                     this.blocks[name] = content;
                 }
-            }
-        }
-        if (!app.locals.script) {
-            app.locals.script = ScriptManager;
-        }
-        if (!app.locals.scripts) {
-            app.locals.scripts = () => {
-                return ScriptManager.getContent();
-            }
-        }
-        if (!app.locals.javascripts) {
-            app.locals.javascripts = () => {
-                this.finalizeVars();
+            },
+            script: ScriptManager,
+            scripts: () => ScriptManager.getContent(),
+            javascripts: () => {
+                this.finalize();
                 return ScriptManager.getAssets(ScriptAsset.JAVASCRIPT);
-            }
-        }
-        if (!app.locals.stylesheets) {
-            app.locals.stylesheets = () => {
-                this.finalizeVars();
+            },
+            stylesheets: () => {
+                this.finalize();
                 return ScriptManager.getAssets(ScriptAsset.STYLESHEET);
-            }
-        }
-        if (!app.locals.jsloader) {
-            app.locals.jsloader = (assets) => {
+            },
+            jsloader: assets => {
                 const loader = require('@ntlab/ntjs/Loader').instance().getScript();
                 const queues = JSON.stringify(assets, null, 4);
                 return `<script type="text/javascript">
-//<![CDATA[
 ${loader}
 // load all assets
 document.ntloader.load(${queues});
-//]]>
 </script>
-`;
+    `;
             }
         }
     }
 
-    applyHelper(req, res) {
-        this.resetVars();
-        if (!res._render) {
-            res._render = res.render;
-            res.render = (view, options) => {
+    renderFunctions() {
+        return {
+            render: (view, options) => {
                 options = options || {};
-                if (res.locals.viewdir) view = path.join(res.locals.viewdir, view);
-                res._render(view, options, (err, str) => {
+                if (this.res.locals.viewdir) {
+                    view = path.join(this.res.locals.viewdir, view);
+                }
+                this.res._render(view, options, (err, str) => {
                     if (err) {
-                        return res.req.next(err);
+                        return this.res.req.next(err);
                     }
-                    res.renderLayout(str, options);
+                    this.res.renderLayout(str, options);
                 });
-            }
-        }
-        if (!res.renderLayout) {
-            res.renderLayout = (content, options) => {
-                let layout = req.xhr ? 'xhr' : 'default';
-                if (res.locals.layout !== undefined) {
-                    layout = res.locals.layout;
-                } else if (res.app.locals.layout !== undefined) {
-                    layout = res.app.locals.layout;
+            },
+            renderLayout: (content, options) => {
+                let layout = this.res.req.xhr ? 'xhr' : 'default';
+                if (this.res.locals.layout !== undefined) {
+                    layout = this.res.locals.layout;
+                } else if (this.app.locals.layout !== undefined) {
+                    layout = this.app.locals.layout;
                 }
                 let title = options.title || '';
-                let sitetitle = res.app.title;
-                if (title) sitetitle = `${title} &ndash; ${sitetitle}`;
+                let sitetitle = this.app.title;
+                if (title) {
+                    sitetitle = `${title} &ndash; ${sitetitle}`;
+                }
                 if (false !== layout) {
                     const values = {
                         sitetitle: sitetitle,
@@ -147,42 +140,20 @@ document.ntloader.load(${queues});
                         content: content
                     }
                     Object.assign(values, this.blocks);
-                    res.app.render(`layout/${layout}`, values, (err, str) => {
+                    this.app.render(`layout/${layout}`, values, (err, str) => {
                         if (err) {
-                            return res.req.next(err);
+                            return this.res.req.next(err);
                         }
-                        res.send(str);
+                        this.res.send(str);
                     });
                 } else {
-                    res.send(str);
+                    this.res.send(str);
                 }
             }
         }
     }
-
-    resetVars() {
-        ScriptManager.clear();
-        ScriptManager.includeDefaults();
-        this.blocks = {};
-        this.finalized = false;
-    }
-
-    finalizeVars() {
-        if (!this.finalized) {
-            this.finalized = true;
-            ScriptManager.includeAssets();
-        }
-    }
-
-    /**
-     * Create an instance.
-     *
-     * @returns {CoreHelper}
-     */
-    static create() {
-        if (!CoreHelper.instance) CoreHelper.instance = new this();
-        return CoreHelper.instance;
-    }
 }
 
-module.exports = (options) => CoreHelper.create().handle(options);
+const helper = new Helper(CoreFunctions);
+
+module.exports = options => helper.handle(options);
