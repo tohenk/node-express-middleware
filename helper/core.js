@@ -96,7 +96,7 @@ class CoreFunctions extends HelperFunctions {
             },
             jsloader: assets => {
                 const loader = require('@ntlab/ntjs/Loader').instance().getScript();
-                const queues = JSON.stringify(assets, null, 4);
+                const queues = Stringify.from(assets);
                 return `<script type="text/javascript">
 ${loader}
 // load all assets
@@ -139,7 +139,7 @@ document.ntloader.load(${queues});
                         title: title,
                         content: content
                     }
-                    Object.assign(values, this.blocks);
+                    Object.assign(values, this.blocks, this.res.locals);
                     this.app.render(`layout/${layout}`, values, (err, str) => {
                         if (err) {
                             return this.res.req.next(err);
