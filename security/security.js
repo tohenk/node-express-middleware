@@ -22,6 +22,8 @@
  * SOFTWARE.
  */
 
+const debug = require('debug')('middleware:security');
+
 /**
  * Express security middleware.
  */
@@ -40,16 +42,19 @@ class Security {
             this.applySecurity(req, res);
             const path = req.originalUrl;
             // skip security on login or logout route
-            if (path.indexOf(loginroute) == 0 || path.indexOf(logoutroute) == 0) {
+            if (path.indexOf(loginroute) === 0 || path.indexOf(logoutroute) === 0) {
+                debug(`Continue to login or logout route`);
                 return next();
             }
             // skip if user already uthenticated
             if (req.session.user.authenticated) {
+                debug(`Continue, already authenticated`);
                 return next();
             }
             if (req.xhr) {
                 return res.sendStatus(401);
             }
+            debug(`Redirect to login route`);
             res.redirect(loginroute + '?r=' + path);
         }
     }

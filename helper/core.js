@@ -27,34 +27,25 @@ const Helper = require('../lib/helper');
 const HelperFunctions = require('../lib/fn');
 const { ScriptManager, ScriptAsset } = require('@ntlab/ntjs');
 const Stringify = require('@ntlab/ntlib/stringify');
+const debug = require('debug')('middleware:core');
 
 /**
  * Express core middleware.
  */
 class CoreFunctions extends HelperFunctions {
-    
-    blocks = {}
 
     initialize() {
-        this.exportFn(this.app.locals, this.appFunctions());
-        this.exportFn(this.res, this.renderFunctions(), ['render']);
+        this.exportFn(this.app.locals, () => this.appFunctions());
+        this.exportFn(this.res.locals, () => this.blockFunctions());
+        this.exportFn(this.res.locals, () => this.scriptFunctions());
+        this.exportFn(this.res, () => this.renderFunctions(), {saves: ['render']});
     }
 
     preApply() {
-        this.reset();
-    }
-
-    reset() {
-        ScriptManager.clear();
-        ScriptManager.includeDefaults();
-        this.blocks = {};
-    }
-
-    finalize() {
-        ScriptManager.includeAssets();
     }
 
     appFunctions() {
+        debug(`App helper for ${this.res.req.originalUrl}`);
         return {
             apptitle: this.app.title,
             stringify: (object, level = 0) => {
@@ -77,23 +68,6 @@ class CoreFunctions extends HelperFunctions {
                     }
                 }
             },
-            block: (name, content) => {
-                if (content === undefined) {
-                    return this.blocks[name] ? this.blocks[name] : '';
-                } else {
-                    this.blocks[name] = content;
-                }
-            },
-            script: ScriptManager,
-            scripts: () => ScriptManager.getContent(),
-            javascripts: () => {
-                this.finalize();
-                return ScriptManager.getAssets(ScriptAsset.JAVASCRIPT);
-            },
-            stylesheets: () => {
-                this.finalize();
-                return ScriptManager.getAssets(ScriptAsset.STYLESHEET);
-            },
             jsloader: assets => {
                 const loader = require('@ntlab/ntjs/Loader').instance().getScript();
                 const queues = Stringify.from(assets);
@@ -107,7 +81,46 @@ document.ntloader.load(${queues});
         }
     }
 
+    scriptFunctions() {
+        debug(`Script helper for ${this.res.req.originalUrl}`);
+        this.res.script = ScriptManager.newInstance();
+        return {
+            script: this.res.script,
+            scripts: () => {
+                debug(`Include script for ${this.res.req.originalUrl}`);
+                return this.res.script.getContent();
+            },
+            javascripts: () => {
+                debug(`Include javascript for ${this.res.req.originalUrl}`);
+                return this.res.script
+                    .includeAssets()
+                    .getAssets(ScriptAsset.JAVASCRIPT);
+            },
+            stylesheets: () => {
+                debug(`Include stylesheet for ${this.res.req.originalUrl}`);
+                return this.res.script
+                    .includeAssets()
+                    .getAssets(ScriptAsset.STYLESHEET);
+            }
+        }
+    }
+
+    blockFunctions() {
+        debug(`Block helper for ${this.res.req.originalUrl}`);
+        this.res.blocks = {};
+        return {
+            block: (name, content) => {
+                if (content === undefined) {
+                    return this.res.blocks[name] ? this.res.blocks[name] : '';
+                } else {
+                    this.res.blocks[name] = content;
+                }
+            }
+        }
+    }
+
     renderFunctions() {
+        debug(`Render helper for ${this.res.req.originalUrl}`);
         return {
             render: (view, options) => {
                 options = options || {};
@@ -139,8 +152,8 @@ document.ntloader.load(${queues});
                         title: title,
                         content: content
                     }
-                    Object.assign(values, this.blocks, this.res.locals);
-                    this.app.render(`layout/${layout}`, values, (err, str) => {
+                    Object.assign(values, this.res.blocks, this.res.locals);
+                    this.res._render(`layout/${layout}`, values, (err, str) => {
                         if (err) {
                             return this.res.req.next(err);
                         }
