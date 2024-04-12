@@ -46,6 +46,11 @@ class Security {
                 debug(`Continue to login or logout route`);
                 return next();
             }
+            // skip if not secure
+            if (typeof req.isSecure === 'function' && !req.isSecure(path)) {
+                debug(`Continue, ${path} is not secured`);
+                return next();
+            }
             // skip if user already uthenticated
             if (req.session.user.authenticated) {
                 debug(`Continue, already authenticated`);
@@ -73,7 +78,7 @@ class Security {
         }
         app.user = {
             authenticate: (username, password) => {
-                if (typeof app.authenticate == 'function') {
+                if (typeof app.authenticate === 'function') {
                     return app.authenticate(username, password);
                 }
                 throw new Error('Application authenticate is not set');
