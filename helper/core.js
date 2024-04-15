@@ -88,7 +88,8 @@ document.ntloader.load(${queues});
             script: this.res.script,
             scripts: () => {
                 debug(`Include script for ${this.res.req.originalUrl}`);
-                return this.res.script.getContent();
+                const content = this.res.script.getContent();
+                return typeof this.res.onscript === 'function' ? this.res.onscript(content) : content;
             },
             javascripts: () => {
                 debug(`Include javascript for ${this.res.req.originalUrl}`);
