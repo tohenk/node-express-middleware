@@ -69,14 +69,17 @@ class CoreFunctions extends HelperFunctions {
                 }
             },
             jsloader: assets => {
-                const loader = require('@ntlab/ntjs/Loader').instance().getScript();
+                const loader = require('@ntlab/ntjs/Loader')
+                    .instance()
+                    .getScript()
+                    .trimStart();
                 const queues = Stringify.from(assets);
-                return `<script type="text/javascript">
+                const script = this.postProcessScript(`
 ${loader}
 // load all assets
 document.ntloader.load(${queues});
-</script>
-    `;
+`);
+                return `<script type="text/javascript">${script}</script>`;
             }
         }
     }
@@ -88,8 +91,7 @@ document.ntloader.load(${queues});
             script: this.res.script,
             scripts: () => {
                 debug(`Include script for ${this.res.req.originalUrl}`);
-                const content = this.res.script.getContent();
-                return typeof this.res.onscript === 'function' ? this.res.onscript(content) : content;
+                return this.postProcessScript(this.res.script.getContent());
             },
             javascripts: () => {
                 debug(`Include javascript for ${this.res.req.originalUrl}`);
@@ -128,6 +130,7 @@ document.ntloader.load(${queues});
                 if (this.res.locals.viewdir) {
                     view = path.join(this.res.locals.viewdir, view);
                 }
+                this.preRenderCallback();
                 this.res._render(view, options, (err, str) => {
                     if (err) {
                         return this.res.req.next(err);
@@ -165,6 +168,23 @@ document.ntloader.load(${queues});
                 }
             }
         }
+    }
+
+    preRenderCallback() {
+        if (this.res) {
+            if (typeof this.res.onrender === 'function') {
+                this.res.onrender(this.res);
+            }
+        }
+    }
+
+    postProcessScript(script) {
+        if (this.res) {
+            if (typeof this.res.onscript === 'function') {
+                script = this.res.onscript(script);
+            }
+        }
+        return script;
     }
 }
 
