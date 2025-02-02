@@ -1,5 +1,4 @@
-Nodejs Express Middleware
-=========================
+# Nodejs Express Middleware
 
 Nodejs Express Middleware is a set of middlewares build for
 [Expressjs](https://expressjs.com) aimed at:
@@ -13,23 +12,27 @@ Nodejs Express Middleware is a set of middlewares build for
 * Provide pager builder (`pager` helper).
 * Provide a simple security to Expressjs routes (`user` helper).
 
-Expressjs Integration
----------------------
+## Expressjs Integration
 
 Here is a typical usage in Expressjs app.
 
 ```js
 // app.js
 
+const { ScriptManager, ScriptAsset } = require('@ntlab/ntjs');
+const { Helper, Security } = require('@ntlab/express-middleware');
+
+// register script repository
+require('@ntlab/ntjs-repo')();
+
 // security
-app.use(require('./lib/security/security')());
+app.use(Security.core({}));
 
 // app helpers
-app.use(require('./lib/helper/core')());
-app.use(require('./lib/helper/menu')());
-app.use(require('./lib/helper/pager')());
+app.use(Helper.core());
+app.use(Helper.menu());
+app.use(Helper.pager());
 
-const { ScriptManager, ScriptAsset } = require('./lib/script');
 ScriptManager.addDefault('SemanticUI');
 ScriptManager.addAsset(ScriptAsset.STYLESHEET, 'app.css');
 
@@ -76,14 +79,14 @@ app.slots = {
   .useDependencies(['SemanticUI/Dialog/Message'])
   .addMiddle(`
 $.tasks = {
-    about: function() {
+    about() {
         $.ntdlg.message('task-about', 'About', 'About App Message', $.ntdlg.ICON_INFO);
     },
-    profile: function() {
+    profile() {
         $.ntdlg.message('task-profile', 'Howdy', 'Welcome User', $.ntdlg.ICON_INFO);
     },
-    init: function() {
-        var self = this;
+    init() {
+        const self = this;
         $('.menu-about').on('click', function(e) {
             e.preventDefault();
             self.about();
@@ -99,8 +102,7 @@ $.tasks.init();
 `); %>
 ```
 
-Example Usage
--------------
+## Example Usage
 
 Nodejs Express Middleware is heavily used by [NODE-SMS-TERMINAL](https://github.com/tohenk/node-sms-terminal/blob/master/ui/app.js)
 and [NODE-SMS-GATEWAY](https://github.com/tohenk/node-sms-gateway/blob/master/ui/app.js).
